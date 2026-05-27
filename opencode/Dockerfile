@@ -5,6 +5,12 @@
 # glibc 前提のバイナリが配布されるため alpine ではなく slim(Debian) を使う。
 FROM node:24-slim
 
+# git は worktree 検出には不要（opencode は .git を直接読む）だが、
+# ファイル編集時の diff 表示やコミットなど git 連携機能で CLI を使うため入れておく。
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN npm install -g opencode-ai && npm cache clean --force
 
 # セッション DB 等のデータ保存先。compose で volume をマウントして永続化する。

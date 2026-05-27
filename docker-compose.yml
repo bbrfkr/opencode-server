@@ -10,7 +10,7 @@ services:
       XDG_DATA_HOME: /data
     # opencode serve はカレントディレクトリをプロジェクトルートとして扱う。
     # PKM vault を指すことで、AI が vault 内のノートを参照・編集できるようにする。
-    working_dir: /ref/pkm-private
+    working_dir: /root/project
     volumes:
       # プロバイダ設定（API キーは含まず env 置換）。
       - ./opencode/opencode.json:/config/opencode.json:ro
@@ -18,7 +18,7 @@ services:
       - opencode-data:/data
       # PKM vault（Obsidian）を読み書き可能でマウント。これが opencode のプロジェクトルート。
       # ホスト側パスは .env の PKM_VAULT_PATH で指定（必須）。
-      - ${PKM_VAULT_PATH:?PKM_VAULT_PATH is required (set it in .env)}:/ref/pkm-private
+      - ${PKM_VAULT_PATH:?PKM_VAULT_PATH is required (set it in .env)}:/root/project
     ports:
       - "4096:4096"
     healthcheck:
