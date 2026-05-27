@@ -1,0 +1,33 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "bbrfkr-llm/bbrfkr-llm-medium",
+  "provider": {
+    "bbrfkr-llm": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "BBRFKR LLM",
+      "options": {
+        "baseURL": "{env:LITELLM_BASE_URL}",
+        "apiKey": "{env:LITELLM_API_KEY}"
+      },
+      "models": {
+        "bbrfkr-llm-large": {
+          "name": "large",
+          "attachment": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "bbrfkr-llm-medium": {
+          "name": "medium",
+          "attachment": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "searxng": {
+      "type": "remote",
+      "url": "https://searxng.external.dynamis.bbrfkr.net/mcp",
+      "enabled": true
+    }
+  }
+}

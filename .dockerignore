@@ -1,0 +1,9 @@
+node_modules
+.git
+.gitignore
+.env
+.data
+*.log
+dist
+npm-debug.log*
+.claude*
