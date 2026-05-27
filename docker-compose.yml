@@ -8,6 +8,12 @@ services:
     environment:
       OPENCODE_CONFIG: /config/opencode.json
       XDG_DATA_HOME: /data
+      # GH_TOKEN は env_file(.env) から渡され、gh が自動で読み取る（ブラウザ認証不要）。
+      # コミット著者情報は git ネイティブの env で注入する。.env の 1 組を 4 変数に展開。
+      GIT_AUTHOR_NAME: ${GIT_USER_NAME:?GIT_USER_NAME is required (set it in .env)}
+      GIT_AUTHOR_EMAIL: ${GIT_USER_EMAIL:?GIT_USER_EMAIL is required (set it in .env)}
+      GIT_COMMITTER_NAME: ${GIT_USER_NAME}
+      GIT_COMMITTER_EMAIL: ${GIT_USER_EMAIL}
     # opencode serve はカレントディレクトリをプロジェクトルートとして扱う。
     # PKM vault を指すことで、AI が vault 内のノートを参照・編集できるようにする。
     working_dir: /root/project
