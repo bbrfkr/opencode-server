@@ -5,11 +5,16 @@
 # glibc 前提のバイナリが配布されるため alpine ではなく slim(Debian) を使う。
 FROM node:24-slim
 
-# git は worktree 検出には不要（opencode は .git を直接読む）だが、
-# ファイル編集時の diff 表示やコミットなど git 連携機能で CLI を使うため入れておく。
+# opencode は worktree 検出を git CLI（git rev-parse --show-toplevel）に頼るため git は必須。
+# 無いと検出に失敗してファイルシステムルート（/）が worktree になる。diff 表示やコミットでも使う。
 RUN apt-get update \
   && apt-get install -y --no-install-recommends git \
   && rm -rf /var/lib/apt/lists/*
+
+# マウントした vault の .git はホスト側 uid(1000) 所有だが、コンテナは root(0) で動くため
+# git の "dubious ownership" 保護で rev-parse が失敗し、worktree が / に落ちる。
+# 全ディレクトリを信頼してこれを回避する（実行 uid に依存せず効くよう --system で /etc/gitconfig に書く）。
+RUN git config --system --add safe.directory '*'
 
 RUN npm install -g opencode-ai && npm cache clean --force
 
