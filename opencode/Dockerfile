@@ -15,6 +15,46 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends git ca-certificates curl gnupg \
   && rm -rf /var/lib/apt/lists/*
 
+# mise が扱う各言語（Ruby / Python / Go / Rust / Node.js）の開発・ビルドに必要な依存パッケージ群を導入する。
+# ランタイム本体は mise が precompiled バイナリで取得する（Ruby はソースビルド）ため本体ビルド用というより、
+# 各エコシステムのネイティブ拡張（gem / pip の C 拡張 / node-gyp / cgo / cargo の *-sys クレート）を
+# コンパイルするための C/C++ ツールチェーンと代表的な -dev ヘッダを揃える狙い。
+# 完璧な網羅は目指さず、よく要求されるものを広めに入れて 5 言語の一般的な開発用途をカバーする。
+#
+# - build-essential / autoconf / bison / patch / pkg-config: 全言語共通の C/C++ ツールチェーンとビルド補助。
+# - python3: Node の node-gyp がネイティブモジュールのビルドに system python3 を要求する（slim には無い）。
+# - Ruby(ruby-build)向け: libssl-dev libyaml-dev libreadline-dev zlib1g-dev libncurses-dev libffi-dev
+#     libgdbm-dev libdb-dev uuid-dev。
+# - Rust(cargo): pkg-config + libssl-dev（openssl-sys 等のリンクに必要）。Go(cgo): build-essential で足りる。
+# - Python/各言語の C 拡張で頻出: libsqlite3-dev libbz2-dev liblzma-dev libxml2-dev libxslt1-dev
+#     libpq-dev libjpeg-dev libcurl4-openssl-dev。
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    build-essential \
+    autoconf \
+    bison \
+    patch \
+    pkg-config \
+    python3 \
+    libssl-dev \
+    libyaml-dev \
+    libreadline-dev \
+    zlib1g-dev \
+    libncurses-dev \
+    libffi-dev \
+    libgdbm-dev \
+    libdb-dev \
+    uuid-dev \
+    libsqlite3-dev \
+    libbz2-dev \
+    liblzma-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libpq-dev \
+    libjpeg-dev \
+    libcurl4-openssl-dev \
+  && rm -rf /var/lib/apt/lists/*
+
 # GitHub CLI（gh）を入れる。gh の API 認証も git と同じ n8n ブローカー経由の短命トークンで行う
 # （`gh pr create` 等を AI に任せる）。実体は /usr/bin/gh に入り、下のラッパー /usr/local/bin/gh が
 # /tmp/n8n-gh-token を読んで GH_TOKEN として渡す。公式 apt リポジトリから導入する（slim には gh が含まれない）。
