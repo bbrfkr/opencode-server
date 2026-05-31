@@ -56,6 +56,7 @@ cp .env.example .env
 | `LITELLM_BASE_URL` | ✅ | OpenAI 互換エンドポイント（例 `https://.../v1`） |
 | `LITELLM_API_KEY` | ✅ | 上記の API キー |
 | `PROJECT_PATH` | ✅ | `/root/project` にマウントする対象のホスト側絶対パス（vault または docs 等） |
+| `OPENCODE_PORT` | – | ホスト側 listen port（既定 `4096`）。同一ホストで複数起動する場合に衝突回避のため変更する |
 | `N8N_WEBHOOK_BASE_URL` | ✅ | n8n の Webhook 親 URL（`/github/token`・`/github/revoke` の手前、`/webhook` まで） |
 | `GIT_USER_NAME` | ✅ | AI が作るコミットの著者名 |
 | `GIT_USER_EMAIL` | ✅ | AI が作るコミットの著者メール |
@@ -91,7 +92,7 @@ docker compose ps                 # 稼働状況
 docker compose down               # 停止（セッション DB の volume は保持）
 ```
 
-起動後、`http://localhost:4096` で opencode の HTTP API に到達できる。クライアントはこの URL を `OPENCODE_BASE_URL` に設定して接続する。
+起動後、`http://localhost:4096`（`OPENCODE_PORT` を変えた場合はそのポート）で opencode の HTTP API に到達できる。クライアントはこの URL を `OPENCODE_BASE_URL` に設定して接続する。
 
 ### 死活確認
 

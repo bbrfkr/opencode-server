@@ -31,7 +31,9 @@ services:
       - ${PROJECT_PATH:?PROJECT_PATH is required (set it in .env)}:/root/project
     ports:
       # クライアント（discord bot 等）が OPENCODE_BASE_URL で到達できるよう公開する。
-      - "4096:4096"
+      # 同一ホストで複数サービスを起動する場合に備え、ホスト側ポートは OPENCODE_PORT で可変にする
+      # （未指定なら 4096）。コンテナ内は 4096 固定。
+      - "${OPENCODE_PORT:-4096}:4096"
     healthcheck:
       test:
         [
