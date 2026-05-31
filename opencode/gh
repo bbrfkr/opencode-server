@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# gh（GitHub CLI）ラッパー（受け渡し専用・薄い実装）。
+#
+# n8n ブローカーへの「発行/失効」は opencode プラグイン
+# (~/.config/opencode/plugins/github-token.js) が担当する。このラッパーは
+# プラグインが書き出した短命トークンを gh に GH_TOKEN として渡すだけで、n8n は一切叩かない。
+#
+#   - プラグインの tool.execute.before が POST /github/token して
+#     /tmp/n8n-gh-token に短命トークン（ghs_...）を書く
+#   - gh が GitHub API 認証時に GH_TOKEN を読む → 本ラッパーがファイルから読んで設定する
+#   - プラグインの tool.execute.after が POST /github/revoke して失効・ファイル削除
+#
+# git の credential helper (git-credential-n8n) と同じ思想（/tmp/n8n-gh-token を読むだけ）。
+# Dockerfile で /usr/local/bin/gh に置き、PATH で実体 /usr/bin/gh より優先させる。
+# トークンをコマンド文字列やログに出さずに渡せるのが狙い。
+set -euo pipefail
+
+TOKEN_FILE=/tmp/n8n-gh-token
+
+# 実体の gh（本ラッパーは /usr/local/bin/gh のため、実体は apt 導入の /usr/bin/gh）。
+real_gh=/usr/bin/gh
+
+# 既に GH_TOKEN / GITHUB_TOKEN が設定されていればそれを尊重する（上書きしない）。
+# 未設定かつトークンファイルがあれば、その短命トークンを GH_TOKEN にセットする。
+if [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ] && [ -f "$TOKEN_FILE" ]; then
+  token="$(cat "$TOKEN_FILE" 2>/dev/null || true)"
+  if [ -n "$token" ]; then
+    export GH_TOKEN="$token"
+  fi
+fi
+
+exec "$real_gh" "$@"

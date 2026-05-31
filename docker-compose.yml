@@ -1,5 +1,7 @@
 services:
-  # ホストの opencode serve をコンテナ化したもの。
+  # opencode サーバー本体。PKM vault でも n8n ワークフロー仕様でも、project root に
+  # マウントするものを PROJECT_PATH で切り替えて使い回す（単一イメージ・単一の真実点）。
+  # discord bot 等のクライアントは OPENCODE_BASE_URL でこのサーバーへ HTTP 接続する。
   opencode:
     build: ./opencode
     env_file:
@@ -8,24 +10,27 @@ services:
     environment:
       OPENCODE_CONFIG: /config/opencode.json
       XDG_DATA_HOME: /data
-      # GH_TOKEN は env_file(.env) から渡され、gh が自動で読み取る（ブラウザ認証不要）。
+      # git の HTTPS 認証も gh の API 認証も n8n ブローカー経由の短命トークンで行う（静的 GitHub トークンは持たせない）。
+      # プラグイン(github-token.js)が発行/失効し、credential helper / gh ラッパーが受け渡す。その n8n の親 URL。
+      N8N_WEBHOOK_BASE_URL: ${N8N_WEBHOOK_BASE_URL:?N8N_WEBHOOK_BASE_URL is required (set it in .env)}
       # コミット著者情報は git ネイティブの env で注入する。.env の 1 組を 4 変数に展開。
       GIT_AUTHOR_NAME: ${GIT_USER_NAME:?GIT_USER_NAME is required (set it in .env)}
       GIT_AUTHOR_EMAIL: ${GIT_USER_EMAIL:?GIT_USER_EMAIL is required (set it in .env)}
       GIT_COMMITTER_NAME: ${GIT_USER_NAME}
       GIT_COMMITTER_EMAIL: ${GIT_USER_EMAIL}
     # opencode serve はカレントディレクトリをプロジェクトルートとして扱う。
-    # PKM vault を指すことで、AI が vault 内のノートを参照・編集できるようにする。
     working_dir: /root/project
     volumes:
       # プロバイダ設定（API キーは含まず env 置換）。
       - ./opencode/opencode.json:/config/opencode.json:ro
       # セッション DB を永続化（再起動後もセッションを保持）。
       - opencode-data:/data
-      # PKM vault（Obsidian）を読み書き可能でマウント。これが opencode のプロジェクトルート。
-      # ホスト側パスは .env の PKM_VAULT_PATH で指定（必須）。
-      - ${PKM_VAULT_PATH:?PKM_VAULT_PATH is required (set it in .env)}:/root/project
+      # project root にマウントする対象（用途で切替）。ホスト側パスは .env の PROJECT_PATH で指定（必須）。
+      #   - PKM 用途: Obsidian vault のパス
+      #   - bot 用途: n8n ワークフロー仕様リポ等のパス
+      - ${PROJECT_PATH:?PROJECT_PATH is required (set it in .env)}:/root/project
     ports:
+      # クライアント（discord bot 等）が OPENCODE_BASE_URL で到達できるよう公開する。
       - "4096:4096"
     healthcheck:
       test:
