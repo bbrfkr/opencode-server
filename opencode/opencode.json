@@ -22,12 +22,5 @@
         }
       }
     }
-  },
-  "mcp": {
-    "searxng": {
-      "type": "remote",
-      "url": "https://searxng.external.dynamis.bbrfkr.net/mcp",
-      "enabled": true
-    }
   }
 }
