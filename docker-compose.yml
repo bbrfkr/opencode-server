@@ -28,7 +28,12 @@ services:
       # project root にマウントする対象（用途で切替）。ホスト側パスは .env の PROJECT_PATH で指定（必須）。
       #   - PKM 用途: Obsidian vault のパス
       #   - bot 用途: n8n ワークフロー仕様リポ等のパス
+      #   - コーディング用途: 空のワークスペースディレクトリ（AI がこの配下に repo 群を clone して作業する）
       - ${PROJECT_PATH:?PROJECT_PATH is required (set it in .env)}:/root/project
+      # mise（言語ツールチェーンマネージャ）のインストール済みツール・DL キャッシュを永続化する。
+      # コンテナ再生成後も再 DL/再ビルド不要（＝バイナリキャッシュ）。PKM/bot 用途では未使用だが
+      # マウントしても実害はなく、コーディング用途でそのまま効く。
+      - mise:/mise
     ports:
       # クライアント（discord bot 等）が OPENCODE_BASE_URL で到達できるよう公開する。
       # 同一ホストで複数サービスを起動する場合に備え、ホスト側ポートは OPENCODE_PORT で可変にする
@@ -49,3 +54,5 @@ services:
     restart: unless-stopped
 volumes:
   opencode-data:
+  # mise のツールチェーン・キャッシュ専用 volume（コーディング用途のバイナリキャッシュ）。
+  mise:

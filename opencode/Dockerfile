@@ -56,6 +56,34 @@ RUN chmod +x /usr/local/bin/git-credential-n8n \
 # イメージを 1 本に保てる利点が勝る。
 RUN npm install -g opencode-ai defuddle && npm cache clean --force
 
+# mise（多言語ツールチェーンマネージャ）を導入する。discord 経由のコーディング用途で、AI が
+# project root に clone した各 repo の .mise.toml / .tool-versions に従い、任意の言語ランタイムを
+# 汎用的に導入できるようにする（特定言語をイメージに焼き込まない）。実体は /usr/local/bin/mise。
+RUN curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
+
+# mise の挙動と保存先を環境変数で固定する。
+# - data/cache/state/config を /mise 配下に集約し、compose の named volume で永続化する
+#   （インストール済みツールと DL キャッシュが再生成後も残る＝実質バイナリキャッシュ）。
+# - opencode は各コマンドを非対話シェルで個別に起動するため `mise activate` の shell hook は
+#   効きにくい。代わりに shims ディレクトリ($MISE_DATA_DIR/shims)を PATH 先頭に置いて解決する。
+# - MISE_*_COMPILE=0: Python 等をソースビルドせず precompiled バイナリを取得する（高速・堅牢）。
+# - MISE_YES=1: 非対話実行のため確認プロンプトを自動承認する。
+# - MISE_TRUSTED_CONFIG_PATHS=/root/project: clone した repo の mise 設定を自動信頼する。
+ENV MISE_DATA_DIR=/mise/data \
+    MISE_CACHE_DIR=/mise/cache \
+    MISE_STATE_DIR=/mise/state \
+    MISE_CONFIG_DIR=/mise/config \
+    MISE_PYTHON_COMPILE=0 \
+    MISE_NODE_COMPILE=0 \
+    MISE_YES=1 \
+    MISE_TRUSTED_CONFIG_PATHS=/root/project
+ENV PATH="/mise/data/shims:${PATH}"
+# 非対話シェルは上の ENV PATH をそのまま継承するが、login シェル(`bash -l`)は /etc/profile で
+# PATH を組み直すため shims が先頭から外れ、base イメージの node 等に影を踏まれうる。
+# login シェルでも shims を先頭に保つよう profile.d でも前置しておく（どちらの起動経路でも mise が勝つ）。
+RUN printf 'export PATH="/mise/data/shims:$PATH"\n' > /etc/profile.d/mise-shims.sh
+RUN mkdir -p /mise/data /mise/cache /mise/state /mise/config
+
 # 発行/失効を担う opencode プラグインを global plugin ディレクトリへ配置（起動時に自動ロード）。
 COPY plugins/ /root/.config/opencode/plugins/
 
