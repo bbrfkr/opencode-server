@@ -30,6 +30,11 @@ services:
       #   - bot 用途: n8n ワークフロー仕様リポ等のパス
       #   - コーディング用途: 空のワークスペースディレクトリ（AI がこの配下に repo 群を clone して作業する）
       - ${PROJECT_PATH:?PROJECT_PATH is required (set it in .env)}:/root/project
+      # スキル集（dot-claude リポジトリ）を .claude 互換のグローバル探索パスへマウントする。
+      # コンテナ home は /root なので /root/.claude は opencode の ~/.claude/skills/*/SKILL.md に一致し、
+      # PROJECT_PATH（PKM/bot/コーディング）に依存せず skills（n8n Webhook 呼び出し集）が効く。
+      # ホスト側パスは .env の SKILLS_PATH で指定（dot-claude リポジトリのルート）。
+      - ${SKILLS_PATH:?SKILLS_PATH is required (set it in .env)}:/root/.claude:ro
       # mise（言語ツールチェーンマネージャ）のインストール済みツール・DL キャッシュを永続化する。
       # コンテナ再生成後も再 DL/再ビルド不要（＝バイナリキャッシュ）。PKM/bot 用途では未使用だが
       # マウントしても実害はなく、コーディング用途でそのまま効く。
