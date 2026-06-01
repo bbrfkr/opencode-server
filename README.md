@@ -28,6 +28,7 @@ HTTP クライアント ──HTTP──▶ opencode serve ──▶ litellm (Op
 - **プロジェクトルート**: コンテナの作業ディレクトリ `/root/project` にマウントしたものを起点にノート/ファイルを読み書きする。マウント対象は `.env` の `PROJECT_PATH` で切り替える。
 - **セキュアな GitHub 操作（n8n 短命トークン）**: git の HTTPS 認証も gh の API 認証も、長命の静的トークンを持たせず、n8n ブローカー経由の短命トークン（GitHub App installation token, 約1h）で行う。発行/失効は opencode プラグイン (`opencode/plugins/github-token.js`) が git network / gh 実行の前後で担当する。
 - **defuddle 同梱**: skill が Web ページ取得に `defuddle parse <url> --md` を使う（jsdom ベース・ブラウザ不要）。
+- **スキル集（n8n Webhook）**: `dot-claude` リポジトリを `/root/.claude:ro` にマウントし、opencode の `~/.claude/skills/*/SKILL.md` として読み込む。Web 検索 / PKM / github-token 等の n8n Webhook 呼び出しが `PROJECT_PATH` に依存せず全用途で効く。マウント元は `.env` の `SKILLS_PATH`。
 - **セッションの永続化**: セッション DB は `XDG_DATA_HOME=/data`（named volume `opencode-data`）に保存され、再起動後も保持される。
 
 ---
@@ -56,6 +57,7 @@ cp .env.example .env
 | `LITELLM_BASE_URL` | ✅ | OpenAI 互換エンドポイント（例 `https://.../v1`） |
 | `LITELLM_API_KEY` | ✅ | 上記の API キー |
 | `PROJECT_PATH` | ✅ | `/root/project` にマウントする対象のホスト側絶対パス（vault または docs 等） |
+| `SKILLS_PATH` | ✅ | スキル集（`dot-claude` リポジトリ）のホスト側絶対パス。`/root/.claude:ro` にマウントされ、`~/.claude/skills/*/SKILL.md` として全用途で探索される |
 | `OPENCODE_PORT` | – | ホスト側 listen port（既定 `4096`）。同一ホストで複数起動する場合に衝突回避のため変更する |
 | `N8N_WEBHOOK_BASE_URL` | ✅ | n8n の Webhook 親 URL（`/github/token`・`/github/revoke` の手前、`/webhook` まで） |
 | `GIT_USER_NAME` | ✅ | AI が作るコミットの著者名 |
@@ -202,7 +204,7 @@ docker compose up -d opencode
 
 ```
 opencode-server/
-├── docker-compose.yml          # opencode serve サービス（PROJECT_PATH を project root にマウント）
+├── docker-compose.yml          # opencode serve サービス（PROJECT_PATH を project root、SKILLS_PATH を /root/.claude にマウント）
 ├── opencode/
 │   ├── Dockerfile              # opencode サーバイメージ（n8n 短命トークン機構 + defuddle 同梱）
 │   ├── opencode.json           # プロバイダ/モデル/MCP 設定（秘密情報なし）
