@@ -11,9 +11,20 @@ FROM node:24-slim
 
 # opencode は worktree 検出を git CLI（git rev-parse --show-toplevel）に頼るため git は必須。
 # 無いと検出に失敗してファイルシステムルート（/）が worktree になる。diff 表示やコミットでも使う。
+# jq は JSON 整形・抽出に AI が頻繁に使う汎用 CLI なので併せて入れる（Debian apt 版でよい）。
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates curl gnupg \
+  && apt-get install -y --no-install-recommends git ca-certificates curl gnupg jq \
   && rm -rf /var/lib/apt/lists/*
+
+# yq（YAML/JSON/XML プロセッサ）を入れる。jq の YAML 版として AI が頻繁に使う。
+# Debian apt の `yq` は別実装（python-yq）なので、デファクトの mikefarah/yq を
+# GitHub リリースの単一 Go バイナリで導入する（arch は gh と同様 dpkg で解決し、
+# yq の命名 yq_linux_{amd64,arm64} に一致する）。
+ARG YQ_VERSION=v4.44.3
+RUN curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_$(dpkg --print-architecture)" \
+    -o /usr/local/bin/yq \
+  && chmod +x /usr/local/bin/yq \
+  && yq --version
 
 # mise が扱う各言語（Ruby / Python / Go / Rust / Node.js）の開発・ビルドに必要な依存パッケージ群を導入する。
 # ランタイム本体は mise が precompiled バイナリで取得する（Ruby はソースビルド）ため本体ビルド用というより、
