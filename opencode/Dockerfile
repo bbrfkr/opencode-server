@@ -12,8 +12,11 @@ FROM node:24-slim
 # opencode は worktree 検出を git CLI（git rev-parse --show-toplevel）に頼るため git は必須。
 # 無いと検出に失敗してファイルシステムルート（/）が worktree になる。diff 表示やコミットでも使う。
 # jq は JSON 整形・抽出に AI が頻繁に使う汎用 CLI なので併せて入れる（Debian apt 版でよい）。
+# poppler-utils はバックエンド LLM が直接読めない PDF を解析するために入れる（`pdf` skill が使用）。
+# LLM のモダリティは text+image のみで PDF を食えないため、pdftotext でテキスト層を、pdftoppm で
+# 図表/スキャンページを PNG 化して image 入力（vision）で読む。pdfinfo / pdfimages も同梱される。
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates curl gnupg jq \
+  && apt-get install -y --no-install-recommends git ca-certificates curl gnupg jq poppler-utils \
   && rm -rf /var/lib/apt/lists/*
 
 # yq（YAML/JSON/XML プロセッサ）を入れる。jq の YAML 版として AI が頻繁に使う。
