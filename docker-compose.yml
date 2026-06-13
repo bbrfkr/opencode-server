@@ -30,11 +30,20 @@ services:
       #   - bot 用途: n8n ワークフロー仕様リポ等のパス
       #   - コーディング用途: 空のワークスペースディレクトリ（AI がこの配下に repo 群を clone して作業する）
       - ${PROJECT_PATH:?PROJECT_PATH is required (set it in .env)}:/root/project
-      # スキル集（dot-claude リポジトリ）を .claude 互換のグローバル探索パスへマウントする。
-      # コンテナ home は /root なので /root/.claude は opencode の ~/.claude/skills/*/SKILL.md に一致し、
-      # PROJECT_PATH（PKM/bot/コーディング）に依存せず skills（n8n Webhook 呼び出し集）が効く。
-      # ホスト側パスは .env の SKILLS_PATH で指定（dot-claude リポジトリのルート）。
-      - ${SKILLS_PATH:?SKILLS_PATH is required (set it in .env)}:/root/.claude
+      # 共通の .claude ディレクトリ（dot-claude リポジトリ。Claude Code・opencode 双方で使う defuddle 等）を
+      # コンテナの /root/.claude へまるごとマウントする。コンテナ home は /root なので opencode の
+      # ~/.claude/skills/*/SKILL.md に一致し、PROJECT_PATH（PKM/bot/コーディング）に依存せず効く。
+      # ホスト側パスは .env の DOT_CLAUDE_PATH で指定（dot-claude リポジトリ＝ .claude ディレクトリのルート）。
+      - ${DOT_CLAUDE_PATH:?DOT_CLAUDE_PATH is required (set it in .env)}:/root/.claude
+      # opencode 固有の .opencode ディレクトリ（dot-opencode リポジトリ）を opencode ネイティブの
+      # グローバル設定ディレクトリ /root/.config/opencode へまるごとマウントする。これにより
+      #   - plugins/github-token.js  → ~/.config/opencode/plugins/*.js（起動時に自動ロード）
+      #   - skills/<名前>/SKILL.md    → ~/.config/opencode/skills/*/SKILL.md（description 一致で遅延ロード）
+      #   - AGENTS.md                → ~/.config/opencode/AGENTS.md（グローバル指針）
+      # がいずれも PROJECT_PATH に依存せず効く。収録スキルは web-search / gdrive / github-token /
+      # comfyui-image / interest-news / pomodoro / pdf 等。ホスト側パスは .env の DOT_OPENCODE_PATH で指定
+      # （dot-opencode リポジトリ＝ .opencode ディレクトリのルート）。
+      - ${DOT_OPENCODE_PATH:?DOT_OPENCODE_PATH is required (set it in .env)}:/root/.config/opencode
       # mise（言語ツールチェーンマネージャ）のインストール済みツール・DL キャッシュを永続化する。
       # コンテナ再生成後も再 DL/再ビルド不要（＝バイナリキャッシュ）。PKM/bot 用途では未使用だが
       # マウントしても実害はなく、コーディング用途でそのまま効く。

@@ -138,8 +138,11 @@ ENV PATH="/mise/data/shims:${PATH}"
 RUN printf 'export PATH="/mise/data/shims:$PATH"\n' > /etc/profile.d/mise-shims.sh
 RUN mkdir -p /mise/data /mise/cache /mise/state /mise/config
 
-# 発行/失効を担う opencode プラグインを global plugin ディレクトリへ配置（起動時に自動ロード）。
-COPY plugins/ /root/.config/opencode/plugins/
+# 発行/失効を担う opencode プラグイン（github-token.js）はイメージに焼き込まず、
+# dot-opencode リポジトリ（= .opencode ディレクトリ）の plugins/ に同梱する。
+# compose が dot-opencode を /root/.config/opencode へまるごとマウントするため、
+# ~/.config/opencode/plugins/github-token.js として起動時に自動ロードされる
+# （gh / git-credential-n8n ラッパーが参照する絶対パスも従来どおり変わらない）。
 
 # セッション DB 等のデータ保存先。compose で volume をマウントして永続化する。
 ENV XDG_DATA_HOME=/data
