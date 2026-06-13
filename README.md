@@ -26,10 +26,13 @@ HTTP クライアント ──HTTP──▶ opencode serve ──▶ litellm (Op
 
 - **opencode**: `opencode serve`（headless HTTP サーバ、ポート `4096`）。litellm 互換エンドポイントで推論する。
 - **プロジェクトルート**: コンテナの作業ディレクトリ `/root/project` にマウントしたものを起点にノート/ファイルを読み書きする。マウント対象は `.env` の `PROJECT_PATH` で切り替える。
-- **セキュアな GitHub 操作（n8n 短命トークン）**: git の HTTPS 認証も gh の API 認証も、長命の静的トークンを持たせず、n8n ブローカー経由の短命トークン（GitHub App installation token, 約1h）で行う。発行/失効は opencode プラグイン (`opencode/plugins/github-token.js`) が git network / gh 実行の前後で担当する。
+- **セキュアな GitHub 操作（n8n 短命トークン）**: git の HTTPS 認証も gh の API 認証も、長命の静的トークンを持たせず、n8n ブローカー経由の短命トークン（GitHub App installation token, 約1h）で行う。発行/失効は opencode プラグイン (`dot-opencode` の `plugins/github-token.js`。`.opencode` マウントで `~/.config/opencode/plugins/` に載り起動時に自動ロードされる) が git network / gh 実行の前後で担当する。
 - **defuddle 同梱**: skill が Web ページ取得に `defuddle parse <url> --md` を使う（jsdom ベース・ブラウザ不要）。
 - **PDF 解析（poppler-utils 同梱）**: バックエンド LLM はモダリティが text+image のみで **PDF を直接読めない**ため、`poppler-utils` を同梱し `pdf` skill から使う。`pdftotext` でテキスト層を抽出し、図表・スキャン・画像主体のページは `pdftoppm` で PNG にレンダリングして **image 入力（vision）で読む**（テキストと画像の両方を含む PDF に対応）。
-- **スキル集（n8n Webhook）**: `dot-claude` リポジトリを `/root/.claude:ro` にマウントし、opencode の `~/.claude/skills/*/SKILL.md` として読み込む。Web 検索 / PKM / github-token 等の n8n Webhook 呼び出しが `PROJECT_PATH` に依存せず全用途で効く。マウント元は `.env` の `SKILLS_PATH`。
+- **スキル集（共通 + opencode 固有）**: スキルは 2 つのリポジトリに分かれる。
+  - **共通の `.claude` ディレクトリ**（`dot-claude`。Claude Code・opencode 双方で使う `defuddle` 等）を `/root/.claude` にまるごとマウントし、opencode の `~/.claude/skills/*/SKILL.md` として読み込む。マウント元は `.env` の `DOT_CLAUDE_PATH`。
+  - **opencode 固有の `.opencode` ディレクトリ**（`dot-opencode`。`web-search` / `gdrive` / `github-token` / `comfyui-image` / `interest-news` / `pomodoro` / `pdf` 等）を `/root/.config/opencode` にまるごとマウントし、opencode ネイティブの `~/.config/opencode/skills/*/SKILL.md`（スキル）・`~/.config/opencode/plugins/*.js`（プラグイン = `github-token.js`）・`~/.config/opencode/AGENTS.md`（グローバル指針）として読み込む。マウント元は `.env` の `DOT_OPENCODE_PATH`。
+  - どちらも `PROJECT_PATH` に依存せず全用途で効く。
 - **セッションの永続化**: セッション DB は `XDG_DATA_HOME=/data`（named volume `opencode-data`）に保存され、再起動後も保持される。
 
 ---
@@ -58,7 +61,8 @@ cp .env.example .env
 | `LITELLM_BASE_URL` | ✅ | OpenAI 互換エンドポイント（例 `https://.../v1`） |
 | `LITELLM_API_KEY` | ✅ | 上記の API キー |
 | `PROJECT_PATH` | ✅ | `/root/project` にマウントする対象のホスト側絶対パス（vault または docs 等） |
-| `SKILLS_PATH` | ✅ | スキル集（`dot-claude` リポジトリ）のホスト側絶対パス。`/root/.claude:ro` にマウントされ、`~/.claude/skills/*/SKILL.md` として全用途で探索される |
+| `DOT_CLAUDE_PATH` | ✅ | 共通の `.claude` ディレクトリ（`dot-claude` リポジトリ。`defuddle` 等）のホスト側絶対パス。`/root/.claude` にまるごとマウントされ、`~/.claude/skills/*/SKILL.md` として全用途で探索される |
+| `DOT_OPENCODE_PATH` | ✅ | opencode 固有の `.opencode` ディレクトリ（`dot-opencode` リポジトリ。`plugins/` + `skills/` + `AGENTS.md`）のホスト側絶対パス。`/root/.config/opencode` にまるごとマウントされ、プラグイン・スキル・グローバル指針が全用途で効く |
 | `OPENCODE_PORT` | – | ホスト側 listen port（既定 `4096`）。同一ホストで複数起動する場合に衝突回避のため変更する |
 | `N8N_WEBHOOK_BASE_URL` | ✅ | n8n の Webhook 親 URL（`/github/token`・`/github/revoke` の手前、`/webhook` まで） |
 | `GIT_USER_NAME` | ✅ | AI が作るコミットの著者名 |
@@ -111,7 +115,7 @@ docker compose exec opencode node -e "fetch('http://127.0.0.1:4096/global/health
 git の push/pull/clone 等の network 操作と gh コマンドは、n8n ブローカー経由の短命トークンで認証する。
 長命の GitHub 秘密（App 秘密鍵）はこのコンテナに置かず、opencode が触れるのは短命・最小スコープのトークンだけ、という非対称設計。
 
-- `opencode/plugins/github-token.js`: git network / gh 実行の直前に `POST /github/token` で発行（`/tmp/n8n-gh-token` に書込）、完了直後に `POST /github/revoke` で失効。
+- `dot-opencode` の `plugins/github-token.js`（`.opencode` マウントで `~/.config/opencode/plugins/` に載り自動ロード）: git network / gh 実行の直前に `POST /github/token` で発行（`/tmp/n8n-gh-token` に書込）、完了直後に `POST /github/revoke` で失効。
 - `opencode/git-credential-n8n`: git の credential helper。`/tmp/n8n-gh-token` を読んで渡すだけの薄い受け渡し役。
 - `opencode/gh`: gh ラッパー。同ファイルを `GH_TOKEN` として実体 gh に渡すだけ。
 
@@ -205,14 +209,15 @@ docker compose up -d opencode
 
 ```
 opencode-server/
-├── docker-compose.yml          # opencode serve サービス（PROJECT_PATH を project root、SKILLS_PATH を /root/.claude にマウント）
+├── docker-compose.yml          # opencode serve サービス（PROJECT_PATH→/root/project、DOT_CLAUDE_PATH→/root/.claude、DOT_OPENCODE_PATH→/root/.config/opencode をマウント）
 ├── opencode/
-│   ├── Dockerfile              # opencode サーバイメージ（n8n 短命トークン機構 + defuddle 同梱）
+│   ├── Dockerfile              # opencode サーバイメージ（n8n 短命トークン機構 + defuddle/poppler 同梱）
 │   ├── opencode.json           # プロバイダ/モデル/MCP 設定（秘密情報なし）
 │   ├── gh                      # gh ラッパー（短命トークンを GH_TOKEN として渡すだけ）
-│   ├── git-credential-n8n      # git credential helper（短命トークンを渡すだけ）
-│   └── plugins/
-│       └── github-token.js     # n8n ブローカーで短命トークンを発行/失効する opencode プラグイン
+│   └── git-credential-n8n      # git credential helper（短命トークンを渡すだけ）
 ├── .env.example                # 環境変数テンプレート
 └── .env                        # 接続情報（gitignore）
+
+# github-token プラグイン（github-token.js）はイメージに焼き込まず、dot-opencode リポジトリの
+# plugins/ に同梱し、/root/.config/opencode マウント経由で自動ロードする。
 ```
