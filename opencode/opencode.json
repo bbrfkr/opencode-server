@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "bbrfkr-llm/bbrfkr-llm-medium",
+  "model": "{env:OPENCODE_MODEL_NAME}",
   "provider": {
     "bbrfkr-llm": {
       "npm": "@ai-sdk/openai-compatible",
@@ -10,13 +10,13 @@
         "apiKey": "{env:LITELLM_API_KEY}"
       },
       "models": {
-        "bbrfkr-llm-large": {
-          "name": "large",
+        "bbrfkr-llm-general": {
+          "name": "general",
           "attachment": true,
           "modalities": { "input": ["text", "image"], "output": ["text"] }
         },
-        "bbrfkr-llm-medium": {
-          "name": "medium",
+        "bbrfkr-llm-coding": {
+          "name": "coding",
           "attachment": true,
           "modalities": { "input": ["text", "image"], "output": ["text"] }
         }
