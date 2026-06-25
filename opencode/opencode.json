@@ -10,13 +10,8 @@
         "apiKey": "{env:LITELLM_API_KEY}"
       },
       "models": {
-        "bbrfkr-llm-general": {
-          "name": "general",
-          "attachment": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
-        "bbrfkr-llm-coding": {
-          "name": "coding",
+        "auto": {
+          "name": "auto",
           "attachment": true,
           "modalities": { "input": ["text", "image"], "output": ["text"] }
         }
