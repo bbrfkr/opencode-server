@@ -15,8 +15,11 @@ FROM node:24-slim
 # poppler-utils はバックエンド LLM が直接読めない PDF を解析するために入れる（`pdf` skill が使用）。
 # LLM のモダリティは text+image のみで PDF を食えないため、pdftotext でテキスト層を、pdftoppm で
 # 図表/スキャンページを PNG 化して image 入力（vision）で読む。pdfinfo / pdfimages も同梱される。
+# ffmpeg は音声入力対応モデル向けに音声ファイルを扱うために入れる。slim には含まれず、無いと
+# 音声のデコード/フォーマット変換（例: 各種コーデック→wav/mp3 への変換やリサンプリング）ができない。
+# ffprobe も同梱され、音声/動画のメタデータ・コーデック判定に使える。
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates curl gnupg jq poppler-utils \
+  && apt-get install -y --no-install-recommends git ca-certificates curl gnupg jq poppler-utils ffmpeg \
   && rm -rf /var/lib/apt/lists/*
 
 # yq（YAML/JSON/XML プロセッサ）を入れる。jq の YAML 版として AI が頻繁に使う。
